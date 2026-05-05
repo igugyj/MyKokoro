@@ -1,0 +1,10 @@
+cmd
+.gradio
+.venv
+kokoro_model/.cache
+kokoro_model/samples
+kokoro_model/voices
+kokoro_model/.gitattributes
+kokoro_model/config.json
+kokoro_model/kokoro-v1_1-zh.pth
+
