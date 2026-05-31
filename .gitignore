@@ -1,10 +1,6 @@
 cmd
 .gradio
 .venv
-kokoro_model/.cache
-kokoro_model/samples
-kokoro_model/voices
-kokoro_model/.gitattributes
-kokoro_model/config.json
-kokoro_model/kokoro-v1_1-zh.pth
-
+__pycache__
+kokoro_model/**
+!kokoro_model/README.md

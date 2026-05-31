@@ -174,6 +174,45 @@ async def tts_api(
     return Response(content=buffer.read(), media_type="audio/wav")
 
 
+# ========== OpenAI-Compatible API ==========
+
+
+@app.post("/v1/audio/speech")
+async def tts_openai(body: dict):
+    input_text = body.get("input", "")
+    voice = body.get("voice", "zf_001")
+    speed = body.get("speed", 1.0)
+    response_format = body.get("response_format", "wav")
+
+    if not input_text.strip():
+        raise HTTPException(status_code=400, detail="input must not be empty")
+
+    if not os.path.isfile(voice):
+        voice_path = BUILTIN_VOICES_DIR / f"{voice}.pt"
+        if voice_path.exists():
+            voice = str(voice_path)
+        else:
+            raise HTTPException(status_code=404, detail=f"Voice not found: {voice}")
+
+    try:
+        audio = synthesize_long(input_text, voice, speed)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if response_format == "pcm":
+        buffer = io.BytesIO()
+        sf.write(buffer, audio, SAMPLE_RATE, format='RAW', subtype='PCM_16')
+        buffer.seek(0)
+        return Response(content=buffer.read(), media_type="audio/L16;rate=24000;channels=1")
+    elif response_format in ("wav", "flac"):
+        buffer = io.BytesIO()
+        sf.write(buffer, audio, SAMPLE_RATE, format=response_format.upper())
+        buffer.seek(0)
+        return Response(content=buffer.read(), media_type=f"audio/{response_format}")
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported response_format: {response_format}. Supported: wav, flac, pcm")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Kokoro Chinese TTS WebUI & API")
     parser.add_argument("--mode", choices=["ui", "api", "both"], default="both")

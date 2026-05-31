@@ -16,7 +16,7 @@ It offers a clean **Gradio Web UI** (with download button) and a **FastAPI HTTPS
 ## Features
 
 - **Web UI** — Input text, select a voice, adjust speed, generate & download WAV.
-- **REST API** — `POST /tts` returns audio directly (easy to integrate with other apps).
+- **REST API** — Legacy `POST /tts` and OpenAI-compatible `POST /v1/audio/speech` endpoints.
 - **Multi-voice** — Built-in Chinese voices (`zf_001`–`zf_004`, `zm_010`–`zm_014`) + custom `.pt` files from `voices/`.
 - **Smart processing** — Automatic sentence splitting, natural pauses between sentences, and dynamic speed control to avoid rushed long sentences.
 - **100% offline** — Works with pre-downloaded model and voice files (no recurring network calls).
@@ -96,15 +96,17 @@ Open your browser at `http://127.0.0.1:7860` and you will see:
 
 ### API
 
-Send a POST request to `/tts` with the following parameters:
+Two endpoints are available:
+
+#### Legacy: `POST /tts`
+
+Query parameters, WAV output only.
 
 | Parameter | Type   | Required | Default  | Description                                              |
 | --------- | ------ | -------- | -------- | -------------------------------------------------------- |
 | `text`    | string | Yes      | –        | Text to synthesise (Chinese or mixed).                   |
 | `voice`   | string | No       | `zf_001` | Voice name (e.g. `zf_004`) or full path to a `.pt` file. |
 | `speed`   | float  | No       | `1.0`    | Speaking speed (0.5 – 2.0).                              |
-
-**Example with Python (`requests`):**
 
 ```python
 import requests
@@ -115,10 +117,38 @@ resp = requests.post(
 )
 with open("hello.wav", "wb") as f:
     f.write(resp.content)
-print("Success!" if resp.status_code == 200 else f"Error: {resp.text}")
 ```
 
-You can also run `python test_api.py` to try it immediately.
+#### OpenAI-compatible: `POST /v1/audio/speech`
+
+JSON body, supports multiple audio formats. Compatible with OpenAI TTS clients.
+
+| Parameter        | Type   | Required | Default               | Description                                            |
+| ---------------- | ------ | -------- | --------------------- | ------------------------------------------------------ |
+| `input`          | string | Yes      | –                     | Text to synthesise.                                    |
+| `voice`          | string | No       | `zf_001`              | Voice name or full `.pt` path.                         |
+| `speed`          | float  | No       | `1.0`                 | Speaking speed (0.5 – 2.0).                            |
+| `response_format`| string | No       | `wav`                 | Output format: `wav`, `flac`, or `pcm`.                |
+| `model`          | string | No       | `kokoro-82m-v1.1-zh`  | Model identifier (accepted but ignored — single model).|
+
+```python
+import requests
+
+resp = requests.post(
+    "http://127.0.0.1:8000/v1/audio/speech",
+    json={
+        "model": "kokoro-82m-v1.1-zh",
+        "input": "你好世界",
+        "voice": "zf_004",
+        "speed": 1.2,
+        "response_format": "wav",
+    },
+)
+with open("hello.wav", "wb") as f:
+    f.write(resp.content)
+```
+
+You can also run `python test_api.py` to try both endpoints.
 
 ---
 
